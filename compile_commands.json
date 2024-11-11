@@ -1,0 +1,19 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-I",
+      "sds",
+      "-Wall",
+      "-Wextra",
+      "-pedantic",
+      "-o",
+      "main",
+      "main.c"
+    ],
+    "directory": "/home/asdf/fun/breaking",
+    "file": "/home/asdf/fun/breaking/main.c",
+    "output": "/home/asdf/fun/breaking/main"
+  }
+]
