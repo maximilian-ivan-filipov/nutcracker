@@ -23,15 +23,24 @@ struct Instructions {
 };
 
 void instruction_print(struct Instruction *instruction) {
+  if (!instruction) {
+    panic("instruction_print: instruction is NULL\n");
+  }
   printf("[0x%lx] %s %s\n", instruction->address, instruction->mnemonic,
          instruction->ops);
 }
 
 void instructions_print_current(struct Instructions *instructions) {
+  if (!instructions) {
+    panic("instruction_print: instruction is NULL\n");
+  }
   instruction_print(&instructions->instructions[instructions->size - 1]);
 }
 
 void instructions_print(struct Instructions *instructions) {
+  if (!instructions) {
+    panic("instruction_print: instruction is NULL\n");
+  }
   printf("######################\n");
   for (size_t i = 0; i < instructions->size; i++) {
     instruction_print(&instructions->instructions[i]);
