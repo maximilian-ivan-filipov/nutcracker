@@ -17,7 +17,7 @@ run: build
 build: main hackme
 
 main: main.c
-	gcc -o main main.c sds/sds.c -I sds -Wall -Wextra -pedantic -lcapstone
+	gcc -o main main.c -Wall -Wextra -pedantic -lcapstone
 
 hackme: hackme.c
 	gcc -static -o hackme hackme.c

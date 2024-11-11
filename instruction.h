@@ -124,6 +124,9 @@ int instructions_push(struct Instructions *instructions, unsigned char *data,
 void instructions_read(pid_t pid, struct Instructions *instructions,
                        long address) {
   unsigned char *bytes = instruction_fetch(pid, address);
+  if (!bytes) {
+    panic("instructions_read: bytes is NULL\n");
+  }
   if (instructions_push(instructions, bytes, address) == -1) {
     panic("instruction_push: could not convert data at address %ld to "
           "instruction\n",
