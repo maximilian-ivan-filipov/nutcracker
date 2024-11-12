@@ -22,6 +22,14 @@ main: main.c
 hackme: hackme.c
 	gcc -static -o hackme hackme.c
 
+tree: data.h ttest.c
+	gcc -ggdb -o ttest ttest.c -Wall -Wextra -pedantic -lcapstone
+	valgrind ./ttest
+
+tree-test: data.h tree_stress_test.c
+	gcc -ggdb -o tree_stress_test tree_stress_test.c
+	./tree_stress_test 1000000
+
 clean:
 	rm *.o main hackme
 
