@@ -22,6 +22,7 @@
 struct InstructionNode {
   struct InstructionNode *leafs[LEAFS_LEN];
   // struct Data *data;
+  // change later after testing to struct Data * data
   long data;
 };
 
