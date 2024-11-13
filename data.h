@@ -1,10 +1,12 @@
 #ifndef DATA_H_
 #define DATA_H_
 
+#include "instruction.h"
 #include "utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/user.h>
 
 /* digit based tree, to map instruction pointer addresses (eg 0x12345678) to
  * information about states in this instrucition like registers, open fd's and
@@ -21,9 +23,7 @@
 
 struct InstructionNode {
   struct InstructionNode *leafs[LEAFS_LEN];
-  // struct Data *data;
-  // change later after testing to struct Data * data
-  long data;
+  struct InstructionData *data;
 };
 
 struct InstructionTree {
@@ -44,13 +44,16 @@ void instruction_tree_init(struct InstructionTree *tree) {
 // ###########################################
 
 void instruction_tree_find_recursive(struct InstructionNode *node, long key,
-                                     long *data) {
+                                     struct InstructionData **data) {
   if (!node) {
-    *data = -1;
+    *data = NULL;
     return;
   }
+
+  // data found!
   if (key == 0) {
     *data = node->data;
+    return;
   }
 
   int digit = key % 10;
@@ -63,7 +66,8 @@ void instruction_tree_find_recursive(struct InstructionNode *node, long key,
   instruction_tree_find_recursive(node->leafs[digit], key, data);
 }
 
-void instruction_tree_find(struct InstructionTree *tree, long key, long *data) {
+void instruction_tree_find(struct InstructionTree *tree, long key,
+                           struct InstructionData **data) {
   if (!tree) {
     panic("instruction_tree_find: tree is NULL\n");
   }
@@ -73,7 +77,7 @@ void instruction_tree_find(struct InstructionTree *tree, long key, long *data) {
 // ###########################################3
 
 void instruction_tree_insert_recursive(struct InstructionNode *node, long key,
-                                       long data) {
+                                       struct InstructionData *data) {
   if (!node) { // should never happen
     panic("instruction_tree_insert_recursive: node is NULL, pretty bad\n");
   }
@@ -95,7 +99,7 @@ void instruction_tree_insert_recursive(struct InstructionNode *node, long key,
   instruction_tree_insert_recursive(node->leafs[digit], key, data);
 }
 void instruction_tree_insert(struct InstructionTree *tree, long key,
-                             long data) {
+                             struct InstructionData *data) {
   if (!tree) {
     panic("instruction_tree_insert: tree is NULL\n");
   }

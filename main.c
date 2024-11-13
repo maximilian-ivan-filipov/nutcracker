@@ -1,4 +1,5 @@
 
+#include "data.h"
 #include "instruction.h"
 #include "process.h"
 #include "registers.h"
@@ -62,18 +63,35 @@ int main(int argc, char **argv) {
     struct Instructions instructions;
     instructions_init(&instructions, 32000);
 
+    struct InstructionTree tree;
+    instruction_tree_init(&tree);
+
     while (1) {
 
       process_singlestep(pid);
 
       registers_read(&regs, pid);
       registers_print(&regs);
-      instructions_read(pid, &instructions, regs.rip);
+
+      struct Instruction *inst =
+          instructions_read(pid, &instructions, regs.rip);
+      struct InstructionData *data = instruction_data_create(inst, &regs);
+
+      instruction_tree_insert(&tree, regs.rip, data);
+      struct InstructionData *content = NULL;
+      instruction_tree_find(&tree, regs.rip, &content);
+      if (content) {
+        printf("moo [%ld] = %s %s\n", content->inst->address,
+               content->inst->mnemonic, content->inst->ops);
+        fflush(stdout);
+      }
       // instructions_print_current(&instructions);
-      instructions_print(&instructions);
+      // instructions_print(&instructions);
 
       getchar();
     }
+
+    instruction_tree_destroy(&tree);
 
     instructions_destroy(&instructions);
   }

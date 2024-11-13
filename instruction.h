@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/ptrace.h>
+#include <sys/user.h>
 
 #define INSTRUCTION_SIZE 15
 
@@ -15,6 +16,26 @@ struct Instruction {
   char mnemonic[8];
   char ops[32];
 };
+
+struct InstructionData {
+  struct Instruction *inst;
+  struct user_regs_struct *regs;
+};
+
+struct InstructionData *instruction_data_create(struct Instruction *instruction,
+                                                struct user_regs_struct *regs) {
+  struct InstructionData *data = calloc(1, sizeof(struct InstructionData));
+  if (!data) {
+    panic("instruction_data_create: calloc failed\n");
+  }
+  data->inst = instruction;
+  data->regs = calloc(1, sizeof(struct user_regs_struct));
+  if (!regs) {
+    panic("instruction_data_create: calloc failed\n");
+  }
+  memcpy(data->regs, regs, sizeof(struct user_regs_struct));
+  return data;
+}
 
 struct Instructions {
   struct Instruction *instructions;
@@ -83,56 +104,62 @@ int instructions_add(struct Instructions *instructions,
   return 0;
 }
 
-int instructions_push(struct Instructions *instructions, unsigned char *data,
-                      long address) {
+struct Instruction *instructions_push(struct Instructions *instructions,
+                                      unsigned char *data, long address) {
 
   csh handle;
   cs_insn *insn;
   size_t count;
+  struct Instruction *instruction = NULL;
 
-  if (cs_open(CS_ARCH_X86, CS_MODE_64, &handle) != CS_ERR_OK)
-    return -1;
-  // changed to only disassembly 1 byte ( maybe it works, need to see )
+  if (cs_open(CS_ARCH_X86, CS_MODE_64, &handle) != CS_ERR_OK) {
+    return NULL;
+  }
+
   count = cs_disasm(handle, data, INSTRUCTION_SIZE, address, 1, &insn);
-  if (count > 0) {
-    size_t j;
-    for (j = 0; j < count; j++) {
 
-      struct Instruction instruction;
-      instruction.address = insn[j].address;
-
-      strncpy(instruction.mnemonic, insn[j].mnemonic,
-              sizeof(instruction.mnemonic) - 1);
-      instruction.mnemonic[sizeof(instruction.mnemonic) - 1] = '\0';
-
-      strncpy(instruction.ops, insn[j].op_str, sizeof(instruction.ops) - 1);
-      instruction.ops[sizeof(instruction.ops) - 1] = '\0';
-
-      instructions_add(instructions, &instruction);
+  if (insn && count > 0) {
+    instruction = calloc(1, sizeof(struct Instruction));
+    if (!instruction) {
+      panic("instruction_push: calloc failed\n");
     }
+    instruction->address = insn[0].address;
+
+    strncpy(instruction->mnemonic, insn[0].mnemonic,
+            sizeof(instruction->mnemonic) - 1);
+    instruction->mnemonic[sizeof(instruction->mnemonic) - 1] = '\0';
+
+    strncpy(instruction->ops, insn[0].op_str, sizeof(instruction->ops) - 1);
+    instruction->ops[sizeof(instruction->ops) - 1] = '\0';
+
+    //      instructions_add(instructions, instruction);
     // instructions_print(instructions);
 
     cs_free(insn, count);
-  } else
+  } else {
     printf("ERROR: Failed to disassemble given code!\n");
+  }
 
   cs_close(&handle);
 
-  return 0;
+  return instruction;
 }
 
-void instructions_read(pid_t pid, struct Instructions *instructions,
-                       long address) {
+struct Instruction *
+instructions_read(pid_t pid, struct Instructions *instructions, long address) {
   unsigned char *bytes = instruction_fetch(pid, address);
   if (!bytes) {
     panic("instructions_read: bytes is NULL\n");
   }
-  if (instructions_push(instructions, bytes, address) == -1) {
+  struct Instruction *instruction;
+  instruction = instructions_push(instructions, bytes, address);
+  if (!instruction) {
     panic("instruction_push: could not convert data at address %ld to "
           "instruction\n",
           address);
   }
   free(bytes);
+  return instruction;
 }
 
 void instructions_init(struct Instructions *instructions, uint32_t capacity) {
