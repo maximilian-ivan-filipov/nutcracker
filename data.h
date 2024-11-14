@@ -111,8 +111,8 @@ void instruction_tree_insert_recursive(struct InstructionNode *node, long key,
 }
 void instruction_tree_insert(struct InstructionTree *tree, long key,
                              struct InstructionData *data) {
-  if (!tree) {
-    panic("instruction_tree_insert: tree is NULL\n");
+  if (!tree || !data) {
+      return;
   }
   instruction_tree_insert_recursive(tree->dummy, key, data);
 }
@@ -124,7 +124,7 @@ void instruction_tree_insert(struct InstructionTree *tree, long key,
 // We do not have meaningful register values and set them to nil, since we just LOOKAHEAD and dont execute instruction
 // later if we reach that instruction we should update the tree with the new registers, with 
 // instruction_tree_insert(...), so we can have easy lookahead anytime
-int instruction_tree_insert_n_inst_from_rip_and_push_to_inst_stack(pid_t pid, struct InstructionTree *tree, struct InstructionStack *stack, long start_address, int n) {
+int instruction_tree_insert_push_lookahead(pid_t pid, struct InstructionTree *tree, struct InstructionStack *stack, long start_address, int n) {
     instruction_stack_clear(stack);
     size_t offset = 0;
     size_t bytes_read = 0;
@@ -132,11 +132,17 @@ int instruction_tree_insert_n_inst_from_rip_and_push_to_inst_stack(pid_t pid, st
     for (int i = 0; i < n; i++) {
         long key = start_address + offset;
         struct Instruction *instruction =  instruction_read(pid, key, &bytes_read);
+        struct InstructionData* data = instruction_data_create(instruction, NULL);
         if (instruction) {
-            struct InstructionData* data = instruction_data_create(instruction, NULL);
-            instruction_tree_insert(tree, key, data);
-            instruction_stack_push(stack,  data);
+            struct InstructionData * previous_data;
+            instruction_tree_find(tree, key, &previous_data);
+            // overwrite instruction in tree if register were NULL
+            // so we dont overwrite already executed instructions
+            if (!previous_data || (previous_data && previous_data->regs == NULL)) {
+                instruction_tree_insert(tree, key, data);
+            }
         }
+        instruction_stack_push(stack, data);
 
         offset += bytes_read;
         bytes_read = 0;

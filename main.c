@@ -64,23 +64,48 @@ int main(int argc, char **argv) {
     struct InstructionTree tree;
     instruction_tree_init(&tree);
 
-    struct InstructionStack instruction_stack;
-    instruction_stack_init(&instruction_stack);
+    // stack which pushes future instructions into next stack
+    // and previous instructions into prev stack
+    // which alloows for super easy time travel
+    // the stack "tops" are the last element so when we want to go 
+    // backwards in time, we just pop the prev stack and push
+    // to the next stack, vice versa, i know its weird a queue would 
+    // be more intuitive but it is what it is.
+    struct InstructionStack prev_inst_stack;
+    struct InstructionStack next_inst_stack;
+    struct InstructionStack lookahead_inst_stack;
+
+    instruction_stack_init(&prev_inst_stack);
+    instruction_stack_init(&next_inst_stack);
+    instruction_stack_init(&lookahead_inst_stack);
+
+    struct Instruction *current_instruction = NULL;
 
     while (1) {
 
-      process_singlestep(pid);
+        registers_read(&regs, pid);
+        registers_print(&regs);
 
-      registers_read(&regs, pid);
-      registers_print(&regs);
+        size_t bytes_read;
+        struct Instruction *inst =
+            instruction_read(pid, regs.rip, &bytes_read);
+        if (!inst) continue;
 
-      size_t bytes_read;
-      struct Instruction *inst =
-          instruction_read(pid, regs.rip, &bytes_read);
-      printf("[read %ld] ", bytes_read);
-      struct InstructionData *data = instruction_data_create(inst, &regs);
+        struct InstructionData *data = instruction_data_create(inst, &regs);
+        if (!data) continue;
 
-      instruction_tree_insert(&tree, regs.rip, data);
+        instruction_tree_insert(&tree, regs.rip, data);
+        instruction_tree_insert_push_lookahead(pid, &tree, &lookahead_inst_stack, regs.rip, 5);
+        // add instruction_stack_back()
+
+        instruction_stack_print("Previous", &prev_inst_stack);
+        instruction_stack_print("Next", &next_inst_stack);
+        instruction_stack_print("Lookahead", &lookahead_inst_stack);
+
+        instruction_stack_push(&prev_inst_stack, data);
+        process_singlestep(pid);
+
+
 
 
       //instruction_stack_push(&instruction_stack, data);
@@ -93,20 +118,22 @@ int main(int argc, char **argv) {
       /*         content->inst->mnemonic, content->inst->ops);*/
       /*  fflush(stdout);*/
       /*}*/
-      struct Instruction *instruction = NULL;
-      instruction_tree_find_as_instruction(&tree, regs.rip, &instruction);
-      instruction_print(instruction);
+      /*struct Instruction *instruction = NULL;*/
+      /*instruction_tree_find_as_instruction(&tree, regs.rip, &instruction);*/
+      /*instruction_print(instruction);*/
 
-      //instruction_stack_clearpush_n_ahead(pid, &instruction_stack, regs.rip, 10);
-      instruction_tree_insert_n_inst_from_rip_and_push_to_inst_stack(pid, &tree, &instruction_stack, regs.rip, 10);
-      instruction_stack_print(&instruction_stack);
+      // lookahead n next instruction and save to tree and lookahead stack
+      // just for visuals, registers should be NULL, since those instructions
+      // are not yet executed
       // instructions_print_current(&instructions);
       // instructions_print(&instructions);
 
       getchar();
     }
 
-    instruction_stack_destroy(&instruction_stack);
+    instruction_stack_destroy(&prev_inst_stack);
+    instruction_stack_destroy(&next_inst_stack);
+    instruction_stack_destroy(&lookahead_inst_stack);
     instruction_tree_destroy(&tree);
   }
 

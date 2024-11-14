@@ -61,11 +61,12 @@ size_t instruction_stack_size(struct InstructionStack *stack) {
     return stack->size;
 }
 
-void instruction_stack_print(struct InstructionStack *stack) {
+void instruction_stack_print(char * desc, struct InstructionStack *stack) {
     if (!stack) {
         puts("instruction stack is empty!\n");
     }
-    printf("Instruction_Stack[%ld]:\n", instruction_stack_size(stack));
+
+    printf("%s[%ld]:\n", desc ? desc : "" , instruction_stack_size(stack));
     for (size_t i = 0; i < instruction_stack_size(stack); i++) {
         struct InstructionData *data = stack->stack[i];
         instruction_print(data->inst);

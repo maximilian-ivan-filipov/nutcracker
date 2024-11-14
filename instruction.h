@@ -26,6 +26,9 @@ struct InstructionData {
 
 struct InstructionData *instruction_data_create(struct Instruction *instruction,
         struct user_regs_struct *regs) {
+    if (!instruction) {
+        return NULL;
+    }
     struct InstructionData *data = calloc(1, sizeof(struct InstructionData));
     if (!data) {
         panic("instruction_data_create: calloc failed\n");
