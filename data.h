@@ -8,6 +8,11 @@
 #include <string.h>
 #include <sys/user.h>
 
+// forward declaration of used structs and functions
+struct InstructionStack;
+struct InstructionData *instruction_stack_push(struct InstructionStack *stack, struct InstructionData* _instruction);
+void instruction_stack_clear(struct InstructionStack *stack);
+
 /* digit based tree, to map instruction pointer addresses (eg 0x12345678) to
  * information about states in this instrucition like registers, open fd's and
  * other info, thus we can time travel easily path taken by % 10, O(d) where d
@@ -74,6 +79,12 @@ void instruction_tree_find(struct InstructionTree *tree, long key,
   instruction_tree_find_recursive(tree->dummy, key, data);
 }
 
+void instruction_tree_find_as_instruction(struct InstructionTree *tree, long key, struct Instruction **instruction) {
+    struct InstructionData *data = NULL;
+    instruction_tree_find(tree, key, &data);
+    *instruction = data->inst;
+}
+
 // ###########################################3
 
 void instruction_tree_insert_recursive(struct InstructionNode *node, long key,
@@ -107,6 +118,31 @@ void instruction_tree_insert(struct InstructionTree *tree, long key,
 }
 
 // ###########################################3
+// fill instruction tree and hashmap, instruction tree for fast access of data and instruction stack is for
+// showing just the next n instructions ahead for convienience, n max is defined currently as 32 
+// look for INSTRUCTION_STACK_CAPACITY, changing it will not break anything
+// We do not have meaningful register values and set them to nil, since we just LOOKAHEAD and dont execute instruction
+// later if we reach that instruction we should update the tree with the new registers, with 
+// instruction_tree_insert(...), so we can have easy lookahead anytime
+int instruction_tree_insert_n_inst_from_rip_and_push_to_inst_stack(pid_t pid, struct InstructionTree *tree, struct InstructionStack *stack, long start_address, int n) {
+    instruction_stack_clear(stack);
+    size_t offset = 0;
+    size_t bytes_read = 0;
+
+    for (int i = 0; i < n; i++) {
+        long key = start_address + offset;
+        struct Instruction *instruction =  instruction_read(pid, key, &bytes_read);
+        if (instruction) {
+            struct InstructionData* data = instruction_data_create(instruction, NULL);
+            instruction_tree_insert(tree, key, data);
+            instruction_stack_push(stack,  data);
+        }
+
+        offset += bytes_read;
+        bytes_read = 0;
+    }
+    return -1;
+}
 
 void instruction_tree_delete_recursive(struct InstructionNode *node) {
   if (!node) {
