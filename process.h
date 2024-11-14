@@ -26,9 +26,9 @@ void process_singlestep(pid_t pid) {
   }
 
   if (singlestep_worked(status)) {
-    printf("[+] successfuly stopped [sig = %d] child processes after "
-           "singlestep\n",
-           WSTOPSIG(status));
+    // printf("[+] successfuly stopped [sig = %d] child processes after "
+    //        "singlestep\n",
+    //        WSTOPSIG(status));
   } else {
     panic("could not stop child process after singlestep, help!\n");
   }

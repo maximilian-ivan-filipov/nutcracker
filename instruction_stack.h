@@ -24,7 +24,7 @@ void instruction_stack_init(struct InstructionStack* instruction_stack) {
 }
 
 struct InstructionData *instruction_stack_push(struct InstructionStack *stack, struct InstructionData* _instruction) {
-    if ((stack->size - 1) == INSTRUCTION_STACK_CAPACITY) {
+    if (stack->size == INSTRUCTION_STACK_CAPACITY) {
         return NULL;
     }
 
@@ -42,9 +42,22 @@ struct InstructionData *instruction_stack_push(struct InstructionStack *stack, s
 }
 
 struct InstructionData *instruction_stack_pop(struct InstructionStack *stack) {
-    struct InstructionData *instruction = stack->stack[stack->size-1];
+    struct InstructionData *data = stack->stack[stack->size-1];
     stack->size--;
+    return data;
+}
+
+struct Instruction *instruction_stack_pop_as_instruction(struct InstructionStack *stack) {
+    struct InstructionData *data = instruction_stack_pop(stack);
+    struct Instruction *instruction = data->inst;
     return instruction;
+}
+
+void instruction_stack_clearpush_n_ahead(pid_t pid, struct InstructionStack *stack, long address, int n) {
+    size_t bytes_read = 0;
+    for (int i = 0; i < n; i++) {
+        struct Instruction* instruction = instruction_read(pid, address + bytes_read, &bytes_read);
+    }
 }
 
 size_t instruction_stack_size(struct InstructionStack *stack) {
@@ -52,6 +65,17 @@ size_t instruction_stack_size(struct InstructionStack *stack) {
         return 0;
     }
     return stack->size;
+}
+
+void instruction_stack_print(struct InstructionStack *stack) {
+    if (!stack) {
+        puts("instruction stack is empty!\n");
+    }
+    printf("Instruction_Stack[%ld]:\n", instruction_stack_size(stack));
+    for (size_t i = 0; i < instruction_stack_size(stack); i++) {
+        struct InstructionData *data = stack->stack[i];
+        instruction_print(data->inst);
+    }
 }
 
 

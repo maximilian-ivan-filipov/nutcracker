@@ -74,22 +74,17 @@ int main(int argc, char **argv) {
       registers_read(&regs, pid);
       registers_print(&regs);
 
+      size_t bytes_read;
       struct Instruction *inst =
-          instructions_read(pid, regs.rip);
+          instruction_read(pid, regs.rip, &bytes_read);
+      printf("[read %ld] ", bytes_read);
       struct InstructionData *data = instruction_data_create(inst, &regs);
 
       instruction_tree_insert(&tree, regs.rip, data);
+
+
       instruction_stack_push(&instruction_stack, data);
-      if (instruction_stack_size(&instruction_stack) == 10) {
-          puts("stack: ");
-          for (int i = 0; i < 10; i++) {
-              struct InstructionData * data = instruction_stack_pop(&instruction_stack);
-              struct Instruction *instruction = data->inst;
-              printf("[%d][%ld] : %s %s\n", i, instruction->address, instruction->mnemonic, instruction->ops);
-          }
-      } else {
-          printf("stack %ld/10\n", instruction_stack_size(&instruction_stack));
-      }
+      //instruction_stack_print(&instruction_stack);
 
       /*struct InstructionData *content = NULL;*/
       /*instruction_tree_find(&tree, regs.rip, &content);*/
@@ -98,6 +93,10 @@ int main(int argc, char **argv) {
       /*         content->inst->mnemonic, content->inst->ops);*/
       /*  fflush(stdout);*/
       /*}*/
+      struct Instruction *instruction = NULL;
+      instruction_tree_find_as_instruction(&tree, regs.rip, &instruction);
+      instruction_print(instruction);
+      //instruction_stack_clearpush_n_ahead(&instruction_stack, regs.rip, 5);
       // instructions_print_current(&instructions);
       // instructions_print(&instructions);
 
