@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
       instruction_tree_insert(&tree, regs.rip, data);
 
 
-      instruction_stack_push(&instruction_stack, data);
+      //instruction_stack_push(&instruction_stack, data);
       //instruction_stack_print(&instruction_stack);
 
       /*struct InstructionData *content = NULL;*/
@@ -96,7 +96,10 @@ int main(int argc, char **argv) {
       struct Instruction *instruction = NULL;
       instruction_tree_find_as_instruction(&tree, regs.rip, &instruction);
       instruction_print(instruction);
-      //instruction_stack_clearpush_n_ahead(&instruction_stack, regs.rip, 5);
+
+      //instruction_stack_clearpush_n_ahead(pid, &instruction_stack, regs.rip, 10);
+      instruction_tree_insert_n_inst_from_rip_and_push_to_inst_stack(pid, &tree, &instruction_stack, regs.rip, 10);
+      instruction_stack_print(&instruction_stack);
       // instructions_print_current(&instructions);
       // instructions_print(&instructions);
 

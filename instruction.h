@@ -25,18 +25,22 @@ struct InstructionData {
 };
 
 struct InstructionData *instruction_data_create(struct Instruction *instruction,
-                                                struct user_regs_struct *regs) {
-  struct InstructionData *data = calloc(1, sizeof(struct InstructionData));
-  if (!data) {
-    panic("instruction_data_create: calloc failed\n");
-  }
-  data->inst = instruction;
-  data->regs = calloc(1, sizeof(struct user_regs_struct));
-  if (!regs) {
-    panic("instruction_data_create: calloc failed\n");
-  }
-  memcpy(data->regs, regs, sizeof(struct user_regs_struct));
-  return data;
+        struct user_regs_struct *regs) {
+    struct InstructionData *data = calloc(1, sizeof(struct InstructionData));
+    if (!data) {
+        panic("instruction_data_create: calloc failed\n");
+    }
+    data->inst = instruction;
+    if (regs) {
+        data->regs = calloc(1, sizeof(struct user_regs_struct));
+        if (!regs) {
+            panic("instruction_data_create: calloc failed\n");
+        }
+        memcpy(data->regs, regs, sizeof(struct user_regs_struct));
+    } else {
+        data->regs = NULL;
+    }
+    return data;
 }
 
 struct Instructions {
@@ -139,7 +143,7 @@ struct Instruction *instruction_disassemble(unsigned char *data, long address, s
 
         cs_free(insn, count);
     } else {
-        printf("ERROR: Failed to disassemble given code!\n");
+        return NULL;
     }
 
     cs_close(&handle);
@@ -151,14 +155,16 @@ struct Instruction *
 instruction_read(pid_t pid, long address, size_t *bytes_read) {
   unsigned char *bytes = instruction_fetch(pid, address);
   if (!bytes) {
-    panic("instructions_read: bytes is NULL\n");
+      return NULL;
+    /*panic("instructions_read: bytes is NULL\n");*/
   }
   struct Instruction *instruction;
   instruction = instruction_disassemble(bytes, address, bytes_read);
   if (!instruction) {
-    panic("instruction_push: could not convert data at address %ld to "
-          "instruction\n",
-          address);
+      return NULL;
+    /*panic("instruction_read: could not convert data at address %ld to "*/
+    /*      "instruction\n",*/
+    /*      address);*/
   }
   free(bytes);
   return instruction;

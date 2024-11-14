@@ -1,5 +1,6 @@
 
 
+#include "data.h"
 #include "utils.h"
 #include <capstone/capstone.h>
 #include <stdint.h>
@@ -53,13 +54,6 @@ struct Instruction *instruction_stack_pop_as_instruction(struct InstructionStack
     return instruction;
 }
 
-void instruction_stack_clearpush_n_ahead(pid_t pid, struct InstructionStack *stack, long address, int n) {
-    size_t bytes_read = 0;
-    for (int i = 0; i < n; i++) {
-        struct Instruction* instruction = instruction_read(pid, address + bytes_read, &bytes_read);
-    }
-}
-
 size_t instruction_stack_size(struct InstructionStack *stack) {
     if (!stack) {
         return 0;
@@ -84,6 +78,7 @@ void instruction_stack_destroy(struct InstructionStack *stack) {
         free(stack->stack[i]);
         stack->stack[i] = NULL;
     }
+    stack->size = 0;
 }
 
 void instruction_stack_clear(struct InstructionStack *stack) {
@@ -92,4 +87,20 @@ void instruction_stack_clear(struct InstructionStack *stack) {
     }
     instruction_stack_destroy(stack);
 }
+
+/*void instruction_stack_clearpush_n_ahead(pid_t pid, struct InstructionStack *stack, long address, int n) {*/
+/*    instruction_stack_clear(stack);*/
+/*    size_t offset = 0;*/
+/*    size_t bytes_read = 0;*/
+/*    for (int i = 0; i < n; i++) {*/
+/*        struct Instruction *instruction =  instruction_read(pid, address + offset, &bytes_read);*/
+/*        if (instruction) {*/
+/*            struct InstructionData* data = instruction_data_create(instruction, NULL);*/
+/*            instruction_stack_push(stack, data);*/
+/*        }*/
+/*        offset += bytes_read;*/
+/*        bytes_read = 0;*/
+/*    }*/
+/*}*/
+/**/
 
