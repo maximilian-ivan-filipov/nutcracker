@@ -9,7 +9,9 @@
 #include <sys/ptrace.h>
 #include <sys/user.h>
 
+
 #define INSTRUCTION_SIZE 15
+#define INSTRUCTION_QUEUE_CAPACITY 32
 
 struct Instruction {
   long address;
@@ -104,8 +106,7 @@ int instructions_add(struct Instructions *instructions,
   return 0;
 }
 
-struct Instruction *instructions_push(struct Instructions *instructions,
-                                      unsigned char *data, long address) {
+struct Instruction *instructions_push(unsigned char *data, long address) {
 
   csh handle;
   cs_insn *insn;
@@ -146,13 +147,13 @@ struct Instruction *instructions_push(struct Instructions *instructions,
 }
 
 struct Instruction *
-instructions_read(pid_t pid, struct Instructions *instructions, long address) {
+instructions_read(pid_t pid, long address) {
   unsigned char *bytes = instruction_fetch(pid, address);
   if (!bytes) {
     panic("instructions_read: bytes is NULL\n");
   }
   struct Instruction *instruction;
-  instruction = instructions_push(instructions, bytes, address);
+  instruction = instructions_push(bytes, address);
   if (!instruction) {
     panic("instruction_push: could not convert data at address %ld to "
           "instruction\n",

@@ -12,8 +12,9 @@
 #include <sys/user.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include "instruction_stack.h"
 
-void usage() { printf("usage: ./main <target> <arg1> <args2> ..."); }
+void usage(void) { printf("usage: ./main <target> <arg1> <args2> ..."); }
 
 int probe_file(char *filename) {
   int fd = open(filename, O_RDONLY);
@@ -60,11 +61,11 @@ int main(int argc, char **argv) {
     struct user_regs_struct regs;
     memset(&regs, 0, sizeof regs);
 
-    struct Instructions instructions;
-    instructions_init(&instructions, 32000);
-
     struct InstructionTree tree;
     instruction_tree_init(&tree);
+
+    struct InstructionStack instruction_stack;
+    instruction_stack_init(&instruction_stack);
 
     while (1) {
 
@@ -74,26 +75,37 @@ int main(int argc, char **argv) {
       registers_print(&regs);
 
       struct Instruction *inst =
-          instructions_read(pid, &instructions, regs.rip);
+          instructions_read(pid, regs.rip);
       struct InstructionData *data = instruction_data_create(inst, &regs);
 
       instruction_tree_insert(&tree, regs.rip, data);
-      struct InstructionData *content = NULL;
-      instruction_tree_find(&tree, regs.rip, &content);
-      if (content) {
-        printf("moo [%ld] = %s %s\n", content->inst->address,
-               content->inst->mnemonic, content->inst->ops);
-        fflush(stdout);
+      instruction_stack_push(&instruction_stack, data);
+      if (instruction_stack_size(&instruction_stack) == 10) {
+          puts("stack: ");
+          for (int i = 0; i < 10; i++) {
+              struct InstructionData * data = instruction_stack_pop(&instruction_stack);
+              struct Instruction *instruction = data->inst;
+              printf("[%d][%ld] : %s %s\n", i, instruction->address, instruction->mnemonic, instruction->ops);
+          }
+      } else {
+          printf("stack %ld/10\n", instruction_stack_size(&instruction_stack));
       }
+
+      /*struct InstructionData *content = NULL;*/
+      /*instruction_tree_find(&tree, regs.rip, &content);*/
+      /*if (content) {*/
+      /*  printf("[%ld] = %s %s\n", content->inst->address,*/
+      /*         content->inst->mnemonic, content->inst->ops);*/
+      /*  fflush(stdout);*/
+      /*}*/
       // instructions_print_current(&instructions);
       // instructions_print(&instructions);
 
       getchar();
     }
 
+    instruction_stack_destroy(&instruction_stack);
     instruction_tree_destroy(&tree);
-
-    instructions_destroy(&instructions);
   }
 
   return 0;
